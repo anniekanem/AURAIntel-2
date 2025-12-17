@@ -1,0 +1,7 @@
+{
+  "name": "Anniez Intelligence Platform",
+  "description": "A real-time humanitarian intelligence platform powered by AI. Analyze field reports, visualize risks, and get predictive insights for crisis response.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
