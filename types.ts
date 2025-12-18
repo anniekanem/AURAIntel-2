@@ -64,6 +64,11 @@ export interface AnalysisResult {
   citations?: { title: string; uri: string }[]; // For web-grounded results
 }
 
+export interface SavedReport extends AnalysisResult {
+  reportId: string;
+  timestamp: string;
+}
+
 export interface RegionData {
   name: string;
   riskScore: number;

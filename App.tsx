@@ -1,7 +1,9 @@
+
 import React, { useState } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import AnalysisTool from './components/AnalysisTool';
+import ReportsLibrary from './components/ReportsLibrary';
 import AbstractMap from './components/LiveMap';
 import PerformanceDashboard from './components/PerformanceDashboard';
 import AlertsCenter from './components/AlertsCenter';
@@ -17,6 +19,8 @@ const App = () => {
         return <Dashboard />;
       case View.ANALYSIS:
         return <AnalysisTool />;
+      case View.REPORTS:
+        return <ReportsLibrary />;
       case View.PERFORMANCE:
         return <PerformanceDashboard />;
       case View.ALERTS:
@@ -24,7 +28,6 @@ const App = () => {
       case View.DATA:
         return <DataIngestion />;
       case View.MAP:
-        // Reusing the map component but as a full view page
         return (
           <div className="h-full flex flex-col animate-in fade-in zoom-in-95 duration-500">
             <div className="mb-6 flex justify-between items-end">
