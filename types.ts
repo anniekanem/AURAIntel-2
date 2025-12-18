@@ -6,20 +6,22 @@ export interface Incident {
   severity: 'Low' | 'Medium' | 'High' | 'Critical';
   date: string;
   description: string;
-  coordinates?: { x: number; y: number }; // Relative for abstract map
+  coordinates?: { x: number; y: number }; 
 }
 
 export interface SectorAnalysis {
-  sector: string; // e.g., "WASH", "Health", "Protection"
-  identifiedRisk: string;
-  recommendedIntervention: string;
+  sector: string; 
+  findings: string;
+  severity: string;
+  peopleInNeed: string;
+  intervention: string;
 }
 
 export interface LogisticsNeed {
   item: string;
   quantity: string;
   urgency: 'Critical' | 'High' | 'Medium';
-  beneficiaries: string; // e.g. "5000 households"
+  beneficiaries: string;
 }
 
 export interface RouteStatus {
@@ -29,39 +31,64 @@ export interface RouteStatus {
 }
 
 export interface Timeline {
-  immediate: string;       // e.g. "Within 6 hours"
-  preparedness: string;    // e.g. "3-5 days lead time"
-  turnaround: string;      // e.g. "48 hours full cycle"
-}
-
-export interface VulnerableGroupsAnalysis {
-  womenAndChildren: string;
-  peopleWithDisabilities: string;
-  genderDisparities: string;
-  specificNeeds: string[]; // Quantified needs specifically for these groups
+  immediate: string;       
+  preparedness: string;    
+  turnaround: string;      
 }
 
 export interface AnalysisResult {
-  title: string; // New field for Report Title
+  title: string;
   summary: string;
   riskLevel: 'Low' | 'Medium' | 'High' | 'Critical';
-  keyEntities: string[];
-  actionableInsights: string[]; // Kept for backward compatibility/general summary
-  suggestedResponse: string;
-  // New Deep Dive Fields
-  deductions: string[]; // Logic steps: "Because X and Y, then Z"
-  scenarios: {
-    bestCase: string;
-    mostLikely: string;
-    worstCase: string;
+  methodology: string;
+  context: string;
+  dateRange?: {
+    start: string;
+    end: string;
   };
-  sectoralAnalysis: SectorAnalysis[]; // New structured interventions
-  // New Fields for Logistics & Mobility
+  population: {
+    totalPiN: string;
+    womenAndChildren: string;
+    elderlyAndPWD: string;
+    disaggregationData: {
+      womenPercentage: number;
+      childrenPercentage: number;
+      menPercentage: number;
+      pwdPercentage: number;
+    }
+  };
+  genderLens: {
+    risks: string[];
+    opportunities: string[];
+    protectionDirectives: string[];
+  };
+  drivers: string[];
+  geographicFocus: string[];
+  sectors: SectorAnalysis[];
   logistics: LogisticsNeed[];
   mobility: RouteStatus[];
-  timeline: Timeline; // New field for Time Estimation
-  vulnerableGroups?: VulnerableGroupsAnalysis; // New field for Vulnerability Analysis
-  citations?: { title: string; uri: string }[]; // For web-grounded results
+  safetySecurity: string;
+  severityAnalysis: string;
+  copingMechanisms: string[];
+  responseGaps: string[];
+  recommendations: string[];
+  timeline: Timeline;
+}
+
+export interface Citation {
+  title: string;
+  uri: string;
+  source?: string;
+}
+
+export interface DeepDiveResult {
+  title: string;
+  content: string;
+  keyFindings: string[];
+  tacticalDirectives: string[];
+  genderImpact: string;
+  citations: Citation[];
+  timestamp: string;
 }
 
 export interface SavedReport extends AnalysisResult {
