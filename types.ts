@@ -17,6 +17,16 @@ export interface SectorAnalysis {
   intervention: string;
 }
 
+export interface SupplyForecast {
+  item: string;
+  category: 'WASH' | 'Health' | 'Food' | 'Shelter' | 'Protection' | 'Logistics';
+  quantityNeeded: string;
+  unit: string;
+  urgency: 'Critical' | 'High' | 'Medium';
+  leadTimeDays: number;
+  gapAnalysis: string;
+}
+
 export interface LogisticsNeed {
   item: string;
   quantity: string;
@@ -65,6 +75,7 @@ export interface AnalysisResult {
   drivers: string[];
   geographicFocus: string[];
   sectors: SectorAnalysis[];
+  supplyForecasting: SupplyForecast[]; // New field for quantified supply needs
   logistics: LogisticsNeed[];
   mobility: RouteStatus[];
   safetySecurity: string;
@@ -81,12 +92,20 @@ export interface Citation {
   source?: string;
 }
 
+export interface RegionalTrend {
+  region: string;
+  trends: string[];
+}
+
 export interface DeepDiveResult {
   title: string;
-  content: string;
-  keyFindings: string[];
-  tacticalDirectives: string[];
-  genderImpact: string;
+  summary: string;
+  regionalTrends: RegionalTrend[];
+  crossRegionalAssessment: string[];
+  outlook: string[];
+  sectorImplications: { sector: string; findings: string }[];
+  fundingImpact: string;
+  strategicActions: string[];
   citations: Citation[];
   timestamp: string;
 }

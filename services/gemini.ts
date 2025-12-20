@@ -1,65 +1,142 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, DeepDiveResult } from "../types";
+import { AnalysisResult, DeepDiveResult, Citation } from "../types";
 
-const ANALYSIS_SYSTEM_INSTRUCTION = `
-You are the "Aura Intelligence Engine," a specialist humanitarian risk strategist. 
-Your mission is to synthesize raw data into high-stakes, actionable intelligence for field response.
+const MISSION_SYSTEM_INSTRUCTION = `
+You are the "Aura Predictive Analytics Engine." 
+Your objective is to generate real-time humanitarian intelligence reports by synthesizing validated field documents and global telemetry.
 
-CORE OPERATIONAL DIRECTIVES:
-1. GENDER LENS: You must apply a cross-cutting gender analysis to every insight. Identify specific protection risks for women, girls, and marginalized groups (e.g., lack of safe WASH facilities, GBV risks on routes).
-2. TACTICAL ACTIONABILITY: Avoid vague language. Instead of "Improve security," say "Deploy gender-balanced security patrols at the eastern perimeter during distribution hours."
-3. JIAF v2.8 FRAMEWORK: Categorize all risks using the Humanitarian Needs Overview (HNO) standard.
-4. SAFE CORRIDORS: Evaluate mobility strictly based on physical safety, checkpoint frequency, and gender-specific transit risks.
+OPERATIONAL PRINCIPLES:
+1. TEMPORAL GROUNDING: Strictly adhere to the selected date window.
+2. GEOGRAPHIC SPECIFICITY: Only analyze the selected nodes.
+3. JIAF v2.8 COMPLIANCE: Use Joint Intersectoral Analysis Framework terminology (PiN, Severity, etc.).
+4. QUANTIFIED SUPPLY FORECAST: Provide specific items and estimated quantities needed (e.g., fuel in liters, trauma kits in units).
 
-RESTRICTIONS:
-- NO MARKDOWN: Output strictly plain text within JSON strings. No asterisks, hashes, or bullet points.
-- JSON ONLY: You must return a single, valid JSON object.
+5. MANDATORY PROTECTION & GENDER LENS (PRIORITY):
+   - You MUST prioritize analysis for women, children, and people with disabilities (PWD).
+   - Report specific risks: GBV, child malnutrition, lack of disability-accessible WASH.
+   - PROTECTION DIRECTIVES: Provide at least 3 high-priority actions specifically for these vulnerable groups.
+   - DATA DISAGGREGATION: Ensure disaggregationData includes realistic percentages for Women, Children, and PWD based on the specific conflict context (e.g., higher child % in certain IDP settings).
+
+Output strictly structured JSON. Do not use Markdown.
 `;
 
 const DEEP_DIVE_SYSTEM_INSTRUCTION = `
-You are the "Aura Research Hub," a global humanitarian intelligence curator.
-Your task is to conduct deep-dive research into specific crises or regions using validated global data sources (UN, OCHA, WFP, ACLED, etc.).
+You are the "Aura Deep Intelligence Architect." 
+Perform strategic, long-form trajectory assessments of humanitarian crises.
 
-OBJECTIVES:
-1. VALIDATED DATA: Only include facts supported by the search results.
-2. GENDER-SENSITIVE: Provide a specific section on gender impact and protection.
-3. ACTIONABLE INTEL: Translate research findings into tactical field recommendations.
-4. CLEAR CITATIONS: List all source URLs clearly.
+FOCUS:
+- Infrastructure degradation and its specific impact on vulnerable groups.
+- Cross-regional ripple effects.
+- 6-month strategic trajectory for Women, Children, and PWD.
 
-RESTRICTIONS:
-- NO MARKDOWN in the "content" or "title".
-- OUTPUT JSON ONLY.
+Output strictly structured JSON. Do not use Markdown.
 `;
 
-export const analyzeFieldReport = async (
-  reportText: string, 
-  dateRange?: { start: string; end: string },
-  countries?: string[]
+export const alignReferenceContext = async (
+  rawContext: string,
+  countries: string[],
+  startDate: string,
+  endDate: string
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `
+TASK: Align the following humanitarian briefing with the current mission parameters.
+SELECTED NODES: ${countries.join(", ")}
+TEMPORAL WINDOW: ${startDate} to ${endDate}
+
+RAW BRIEFING:
+${rawContext}
+
+INSTRUCTION: 
+1. Extract ONLY the segments relevant to the selected countries.
+2. Prune out-of-cycle information not relevant to the ${startDate}-${endDate} window.
+3. Organize the output clearly by country.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are a context-alignment specialist. Filter and synthesize humanitarian data with zero hallucination.",
+        temperature: 0.1,
+      }
+    });
+    return response.text || rawContext;
+  } catch (error) {
+    console.error("Context alignment failed:", error);
+    return rawContext;
+  }
+};
+
+export const fetchRealtimeGrounding = async (
+  countries: string[],
+  startDate: string,
+  endDate: string
+): Promise<string> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const prompt = `
+TASK: Generate a validated humanitarian reference context for the following parameters.
+SELECTED NODES: ${countries.join(", ")}
+TEMPORAL WINDOW: ${startDate} to ${endDate}
+
+Use Google Search to find recent OCHA SITREPs, ReliefWeb briefings, and verified field incidents. 
+Search specifically for impacts on Women, Children, and Persons with Disabilities (PWD) in these regions.
+
+STRUCTURE:
+1. REGIONAL BRIEFING
+2. KEY VERIFIED INCIDENT TRENDS
+3. VULNERABILITY SNAPSHOT (Women, Children, PWD)
+4. SECTORAL SNAPSHOTS
+5. 7-14 DAY OUTLOOK
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: "You are an Intelligence Grounding Specialist. Use Google Search to provide accurate, real-time humanitarian briefings. Format as clean, readable text.",
+        tools: [{ googleSearch: {} }],
+      }
+    });
+    return response.text || "Failed to fetch real-time grounding.";
+  } catch (error) {
+    console.error("Real-time grounding fetch failed:", error);
+    throw error;
+  }
+};
+
+export const generateGlobalIntel = async (
+  topic: string,
+  countries: string[],
+  uploadedContext?: string,
+  dateRange?: { start: string; end: string }
 ): Promise<AnalysisResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  try {
-    const geoContext = countries && countries.length > 0 ? `GEOGRAPHIC FOCUS: ${countries.join(", ")}.` : "GEOGRAPHIC FOCUS: Regional Cluster.";
-    const prompt = `
-${geoContext}
-MISSION WINDOW: ${dateRange ? `${dateRange.start} to ${dateRange.end}` : "Real-time"}.
-
-INPUT FIELD INTEL:
-${reportText}
+  
+  const prompt = `
+MISSION: Tactical Intelligence Synthesis for ${topic || "Crisis Analysis"}.
+TARGET NODES: ${countries.join(", ")}.
+WINDOW: ${dateRange ? `${dateRange.start} to ${dateRange.end}` : "Current Cycle"}.
+REFERENCE DATA: ${uploadedContext}
 
 TASK:
-1. Conduct a full JIAF v2.8 analysis.
-2. DISAGGREGATE POPULATION: Provide precise % for Women, Children, Men, and PWD.
-3. GENDER ANALYSIS: Identify 3 primary gender-specific protection risks.
-4. MOBILITY INTEL: Name specific routes and classify them as Safe, Caution, High Risk, or Blocked. Provide tactical reasoning.
-5. RECOMMENDATIONS: Provide 4 "Field Directives" that are immediately implementable.
+1. Extract specific incidents and trends for the target nodes.
+2. Forecast sectoral impacts.
+3. Quantify immediate supply needs for the next 30 days.
+4. PROVIDE A COMPREHENSIVE GENDER AND PROTECTION LENS: Detail the specific plight of women, children, and PWD.
 `;
 
+  try {
     const response = await ai.models.generateContent({
       model: "gemini-3-pro-preview",
       contents: prompt,
       config: {
-        systemInstruction: ANALYSIS_SYSTEM_INSTRUCTION,
+        systemInstruction: MISSION_SYSTEM_INSTRUCTION,
+        tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingBudget: 15000 },
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -113,17 +190,20 @@ TASK:
                 required: ["sector", "findings", "severity", "peopleInNeed", "intervention"]
               }
             },
-            logistics: {
+            supplyForecasting: {
               type: Type.ARRAY,
               items: {
                 type: Type.OBJECT,
                 properties: {
                   item: { type: Type.STRING },
-                  quantity: { type: Type.STRING },
-                  urgency: { type: Type.STRING, enum: ["Critical", "High", "Medium"] },
-                  beneficiaries: { type: Type.STRING }
+                  category: { type: Type.STRING },
+                  quantityNeeded: { type: Type.STRING },
+                  unit: { type: Type.STRING },
+                  urgency: { type: Type.STRING },
+                  leadTimeDays: { type: Type.NUMBER },
+                  gapAnalysis: { type: Type.STRING }
                 },
-                required: ["item", "quantity", "urgency", "beneficiaries"]
+                required: ["item", "category", "quantityNeeded", "unit", "urgency", "leadTimeDays", "gapAnalysis"]
               }
             },
             mobility: {
@@ -132,7 +212,7 @@ TASK:
                 type: Type.OBJECT,
                 properties: {
                   route: { type: Type.STRING },
-                  status: { type: Type.STRING, enum: ["Safe", "Caution", "High Risk", "Blocked"] },
+                  status: { type: Type.STRING },
                   details: { type: Type.STRING }
                 },
                 required: ["route", "status", "details"]
@@ -156,15 +236,26 @@ TASK:
           required: [
             "title", "summary", "riskLevel", "methodology", "context", 
             "population", "genderLens", "drivers", "geographicFocus", "sectors", 
-            "logistics", "mobility", "safetySecurity", "severityAnalysis", 
-            "copingMechanisms", "responseGaps", "recommendations", "timeline"
+            "supplyForecasting", "mobility", "safetySecurity", 
+            "severityAnalysis", "copingMechanisms", "responseGaps", 
+            "recommendations", "timeline"
           ]
         }
       }
     });
 
     const data = JSON.parse(response.text || '{}') as AnalysisResult;
-    if (dateRange) data.dateRange = dateRange;
+    
+    const citations: Citation[] = [];
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
+        if (chunk.web) {
+          citations.push({ title: chunk.web.title, uri: chunk.web.uri, source: 'Aura Grounded Data' });
+        }
+      });
+    }
+    
+    (data as any).citations = citations;
     return data;
   } catch (error) {
     console.error("Analysis failed:", error);
@@ -172,49 +263,85 @@ TASK:
   }
 };
 
-export const initiateDeepDive = async (
+export const generateDeepDive = async (
   topic: string,
-  countries: string[]
+  countries: string[],
+  uploadedContext?: string
 ): Promise<DeepDiveResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const geoContext = countries.length > 0 ? `Countries: ${countries.join(', ')}.` : "";
-  const prompt = `Research Topic: ${topic}. ${geoContext} 
-  Access validated global humanitarian data (2024-2025). 
-  Focus on food security, conflict dynamics, and protection issues. 
-  Output must include key findings, tactical directives for aid workers, and a specific section on gendered impact.`;
+  
+  const prompt = `
+MISSION: Strategic Trajectory Assessment for ${topic}.
+TARGET AREAS: ${countries.join(", ")}.
+CONTEXT: ${uploadedContext}
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-pro-preview",
-    contents: prompt,
-    config: {
-      systemInstruction: DEEP_DIVE_SYSTEM_INSTRUCTION,
-      tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          content: { type: Type.STRING },
-          keyFindings: { type: Type.ARRAY, items: { type: Type.STRING } },
-          tacticalDirectives: { type: Type.ARRAY, items: { type: Type.STRING } },
-          genderImpact: { type: Type.STRING },
-        },
-        required: ["title", "content", "keyFindings", "tacticalDirectives", "genderImpact"]
-      }
-    }
-  });
+TASK:
+1. Analyze how service failures specifically impact women, children, and PWD over the next 6 months.
+2. Forecast cross-regional stability impacts.
+`;
 
-  const citations: any[] = [];
-  if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-    response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
-      if (chunk.web) {
-        citations.push({ title: chunk.web.title, uri: chunk.web.uri, source: 'Validated Global Source' });
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-pro-preview",
+      contents: prompt,
+      config: {
+        systemInstruction: DEEP_DIVE_SYSTEM_INSTRUCTION,
+        tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingBudget: 20000 },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            summary: { type: Type.STRING },
+            regionalTrends: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  region: { type: Type.STRING },
+                  trends: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["region", "trends"]
+              }
+            },
+            crossRegionalAssessment: { type: Type.ARRAY, items: { type: Type.STRING } },
+            outlook: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sectorImplications: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  sector: { type: Type.STRING },
+                  findings: { type: Type.STRING }
+                },
+                required: ["sector", "findings"]
+              }
+            },
+            fundingImpact: { type: Type.STRING },
+            strategicActions: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["title", "summary", "regionalTrends", "crossRegionalAssessment", "outlook", "sectorImplications", "fundingImpact", "strategicActions"]
+        }
       }
     });
-  }
 
-  const result = JSON.parse(response.text || '{}') as DeepDiveResult;
-  result.citations = citations;
-  result.timestamp = new Date().toISOString();
-  return result;
+    const data = JSON.parse(response.text || '{}') as DeepDiveResult;
+    
+    const citations: Citation[] = [];
+    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+      response.candidates[0].groundingMetadata.groundingChunks.forEach((chunk: any) => {
+        if (chunk.web) {
+          citations.push({ title: chunk.web.title, uri: chunk.web.uri, source: 'Aura Strategic Insight' });
+        }
+      });
+    }
+    
+    data.citations = citations;
+    data.timestamp = new Date().toISOString();
+    return data;
+  } catch (error) {
+    console.error("Deep Dive failed:", error);
+    throw error;
+  }
 };

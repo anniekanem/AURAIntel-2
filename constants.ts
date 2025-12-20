@@ -1,6 +1,45 @@
 
 import { Incident, RegionData, Alert, DataSource } from "./types";
 
+export const HUMANITARIAN_CONTEXT_DEC_2025 = `
+REGIONAL RISK BRIEFING: 3–10 DECEMBER 2025
+GEOGRAPHIC COVERAGE: Nigeria, Eastern DRC, Sudan, South Sudan, Gaza, Ukraine, Syria, Afghanistan
+
+KEY VERIFIED INCIDENT TRENDS:
+- Sudan (North Darfur): Fighting around El Fasher continued with strikes on health/WASH sites. Severe fuel shortages and high latrine-to-user ratios in shelters.
+- Eastern DRC: Armed-group attacks in Lubero/Mambasa. Access disruptions along Beni-Butembo corridor affecting food/NFI dispatch.
+- Nigeria: Banditry/insurgent attacks in NW & NE (Borno, Kaduna, etc.). Flooding in mining zones causing secondary displacement.
+- South Sudan: Intercommunal clashes and cattle-raiding in Upper Nile/Jonglei disrupting markets. Riverine routes blocked.
+- Gaza: Crossings inconsistent; fuel shortages reducing hospital functionality; overcrowding in shelters raising disease risks.
+- Ukraine: Strikes on power/water infrastructure causing outages. High winterization needs.
+- Syria: Degraded water networks and UXO contamination complicating access to services.
+- Afghanistan: High returnee flows at border points; communication disruptions; restrictions on female staff affecting aid delivery.
+
+CROSS-REGIONAL TREND ASSESSMENT:
+1. Operational access remains the top constraint.
+2. Hybrid threats expanding geographically (militant + criminal tactics).
+3. Service degradation creates cascading effects (power failure -> malnutrition).
+4. Shelter density and public health risks are rising.
+5. Funding timing matters; agencies face cuts to trauma care and winterization.
+
+7-14 DAY OUTLOOK:
+- High probability of attacks in E-DRC and NW Nigeria.
+- Gaza convoy flow inconsistent.
+- Severe winter in Ukraine/Afghanistan.
+- Continued strain on medical systems in Darfur/Gaza.
+- Public health risks in high-density settlements.
+
+PRIORITY ACTIONS (TOP 8):
+1. Front-load flexible funding (trauma, WASH, winterization).
+2. Advocate for predictable corridors (Gaza, Darfur, DRC).
+3. Deploy mobile trauma/surgical teams.
+4. Scale protection staffing (GBV, Child Protection).
+5. Pre-position NFIs/Food close to hubs.
+6. Strengthen winterization pipelines (Ukraine, Afghanistan).
+7. Support community-based protection networks.
+8. Prioritize fuel for hospitals and water systems.
+`;
+
 export const MOCK_INCIDENTS: Incident[] = [
   {
     id: '1',
@@ -82,7 +121,6 @@ export const ALL_COUNTRIES = [
   "Gaza (OPT)", "Haiti", "Iraq", "Mali", "Myanmar", "Nigeria", "Somalia", "South Sudan", "Sudan", "Syria", "Ukraine", "Yemen"
 ];
 
-// Performance metrics data
 export const KPI_RESPONSE_DATA = [
   { name: 'Jan', velocity: 12, target: 8 },
   { name: 'Feb', velocity: 10, target: 8 },
@@ -106,7 +144,6 @@ export const TURNAROUND_DATA = [
   { name: 'Review', time: 1.6, fill: '#8b5cf6' },
 ];
 
-// Mock alerts for the Alert Center
 export const MOCK_ALERTS: Alert[] = [
   {
     id: 'a1',
